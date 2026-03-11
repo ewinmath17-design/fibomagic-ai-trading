@@ -128,24 +128,25 @@ with col2:
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
                 
-                # Deteksi model otomatis untuk menghindari error 404
-                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                
-                model_name = 'gemini-1.5-flash' # Default fallback
-                for m in available_models:
-                    if '1.5-flash' in m:
-                        model_name = m.replace('models/', '')
-                        break
-                    elif '1.5-pro' in m:
-                        model_name = m.replace('models/', '')
-                        break
-                        
-                model = genai.GenerativeModel(model_name)
-                
-                # Menghubungkan gambar yang diupload langsung dengan prompt
                 prompt = get_prompt(timeframe)
-                response = model.generate_content([prompt, image])
+                response = None
                 
+                # BYPASS 3 LAPIS: Coba dari model paling baru ke model paling legendaris
+                try:
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = model.generate_content([prompt, image])
+                except:
+                    try:
+                        model = genai.GenerativeModel('gemini-1.5-pro')
+                        response = model.generate_content([prompt, image])
+                    except:
+                        # Ini adalah model vision versi awal yang PASTI dikenali oleh semua API Key
+                        model = genai.GenerativeModel('gemini-pro-vision')
+                        response = model.generate_content([prompt, image])
+                
+                if response is None:
+                    raise ValueError("Semua model gagal merespons. Pastikan API Key Anda aktif.")
+
                 # Parsing hasil
                 res = parse_result(response.text)
                 
