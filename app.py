@@ -2,7 +2,6 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 import re
-import os
 
 # Konfigurasi Halaman Streamlit
 st.set_page_config(
@@ -66,7 +65,7 @@ ALASAN ENTRY (LOGIKA ANALISIS):
 - [Alasan 2]
 """
 
-# Fungsi Parsing Regex untuk membedah output AI
+# Fungsi Parsing Regex
 def parse_result(text):
     def safe_extract(pattern, default="-"):
         match = re.search(pattern, text, re.IGNORECASE)
@@ -96,7 +95,7 @@ def parse_result(text):
 st.markdown("### ⚡ FIBOMAGIC **AI** | `XAUUSD ANALYSIS`")
 st.markdown("---")
 
-# Layout Grid (Kiri Input, Kanan Output)
+# Layout Grid
 col1, col2 = st.columns([4, 6], gap="large")
 
 with col1:
@@ -125,11 +124,23 @@ with col2:
     if analyze_btn and uploaded_file is not None:
         with st.spinner("🤖 Menganalisis Struktur Market & Price Action..."):
             try:
-                # Mengambil API Key dari Secrets Streamlit (Aman dari publik)
+                # Mengambil API Key dari Secrets Streamlit
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
                 
-                model = genai.GenerativeModel('gemini-1.5-flash-latest') # Model vision terbaik untuk analisis chart saat ini
+                # Deteksi model otomatis untuk menghindari error 404
+                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                
+                model_name = 'gemini-1.5-flash' # Default fallback
+                for m in available_models:
+                    if '1.5-flash' in m:
+                        model_name = m.replace('models/', '')
+                        break
+                    elif '1.5-pro' in m:
+                        model_name = m.replace('models/', '')
+                        break
+                        
+                model = genai.GenerativeModel(model_name)
                 
                 # Menghubungkan gambar yang diupload langsung dengan prompt
                 prompt = get_prompt(timeframe)
@@ -196,6 +207,6 @@ with col2:
                     st.markdown(f"- {reason}")
                     
             except Exception as e:
-                st.error(f"Terjadi kesalahan saat menganalisis: {e}")
+                st.error(f"Terjadi kesalahan teknis: {e}")
     elif not analyze_btn:
         st.info("👈 Silakan pilih timeframe, unggah screenshot chart XAUUSD Anda di panel kiri, lalu klik 'Generate Signal'.")
