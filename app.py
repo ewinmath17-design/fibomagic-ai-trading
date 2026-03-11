@@ -11,20 +11,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS untuk meniru tampilan UI/UX yang modern
+# Custom CSS
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #020617;
-        color: #cbd5e1;
-    }
-    .metric-card {
-        background-color: #0f172a;
-        border: 1px solid #1e293b;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
-    }
+    .stApp { background-color: #020617; color: #cbd5e1; }
+    .metric-card { background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
     .signal-buy { color: #34d399; font-weight: bold; background: rgba(52, 211, 153, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(52, 211, 153, 0.2); }
     .signal-sell { color: #fb7185; font-weight: bold; background: rgba(251, 113, 133, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.2); }
     .signal-wait { color: #fbbf24; font-weight: bold; background: rgba(251, 191, 36, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(251, 191, 36, 0.2); }
@@ -100,12 +91,7 @@ col1, col2 = st.columns([4, 6], gap="large")
 
 with col1:
     st.markdown("#### 🕒 Select Timeframe")
-    timeframe = st.radio(
-        "Timeframe",
-        options=['M1', 'M5', 'M15', 'M30', 'H1', 'H4'],
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+    timeframe = st.radio("Timeframe", options=['M1', 'M5', 'M15', 'M30', 'H1', 'H4'], horizontal=True, label_visibility="collapsed")
     
     st.markdown("#### 🖼️ Upload Chart")
     uploaded_file = st.file_uploader("Supports PNG, JPG, WEBP", type=['png', 'jpg', 'jpeg', 'webp'], label_visibility="collapsed")
@@ -124,42 +110,28 @@ with col2:
     if analyze_btn and uploaded_file is not None:
         with st.spinner("🤖 Menganalisis Struktur Market & Price Action..."):
             try:
-                # Mengambil API Key dari Secrets Streamlit
+                # 1. Konfigurasi API Key
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
                 
+                # 2. SOLUSI UTAMA: Konversi gambar ke format RGB (Menghapus Alpha/Transparansi)
+                safe_image = image.convert('RGB')
+                
+                # 3. Panggil model paling stabil dan cepat
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 prompt = get_prompt(timeframe)
-                response = None
                 
-                # BYPASS 3 LAPIS: Coba dari model paling baru ke model paling legendaris
-                try:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = model.generate_content([prompt, image])
-                except:
-                    try:
-                        model = genai.GenerativeModel('gemini-1.5-pro')
-                        response = model.generate_content([prompt, image])
-                    except:
-                        # Ini adalah model vision versi awal yang PASTI dikenali oleh semua API Key
-                        model = genai.GenerativeModel('gemini-pro-vision')
-                        response = model.generate_content([prompt, image])
+                # 4. Eksekusi AI
+                response = model.generate_content([prompt, safe_image])
                 
-                if response is None:
-                    raise ValueError("Semua model gagal merespons. Pastikan API Key Anda aktif.")
-
-                # Parsing hasil
+                # 5. Parsing & Render Hasil
                 res = parse_result(response.text)
                 
-                # Tentukan warna sinyal
                 sig_upper = res['signal'].upper()
-                if "BUY" in sig_upper:
-                    sig_class = "signal-buy"
-                elif "SELL" in sig_upper:
-                    sig_class = "signal-sell"
-                else:
-                    sig_class = "signal-wait"
+                if "BUY" in sig_upper: sig_class = "signal-buy"
+                elif "SELL" in sig_upper: sig_class = "signal-sell"
+                else: sig_class = "signal-wait"
 
-                # Render UI Output
                 st.markdown(f"""
                 <div class="metric-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
@@ -172,7 +144,6 @@ with col2:
                             <span class="{sig_class}">{res['signal']}</span>
                         </div>
                     </div>
-                    
                     <p style="color: #94a3b8; font-size: 14px; font-weight: bold; margin-bottom: 8px;">🎯 EXECUTION DETAILS</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px;">
                         <div style="background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
@@ -188,15 +159,14 @@ with col2:
                             <p style="font-size: 14px; color: #34d399; font-family: monospace; margin: 0;">{res['tp']}</p>
                         </div>
                     </div>
-                    
                     <p style="color: #94a3b8; font-size: 14px; font-weight: bold; margin-bottom: 8px;">⏱️ EVALUATION & VALIDITY</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
                         <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
-                            <p style="font-size: 11px; color: #64748b; margin: 0;">Setup Evaluation</p>
+                            <p style="font-size: 11px; color: #64748b; margin: 0;">Setup Eval</p>
                             <p style="font-size: 13px; color: #cbd5e1; margin: 0;">{res['evaluation']}</p>
                         </div>
                         <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
-                            <p style="font-size: 11px; color: #64748b; margin: 0;">Validity Duration</p>
+                            <p style="font-size: 11px; color: #64748b; margin: 0;">Valid Duration</p>
                             <p style="font-size: 13px; color: #cbd5e1; margin: 0;">{res['duration']}</p>
                         </div>
                     </div>
@@ -208,6 +178,7 @@ with col2:
                     st.markdown(f"- {reason}")
                     
             except Exception as e:
-                st.error(f"Terjadi kesalahan teknis: {e}")
+                # Sekarang jika error, aplikasi akan memberi tahu alasan aslinya dengan jujur
+                st.error(f"Error dari sistem: {str(e)}")
     elif not analyze_btn:
         st.info("👈 Silakan pilih timeframe, unggah screenshot chart XAUUSD Anda di panel kiri, lalu klik 'Generate Signal'.")
