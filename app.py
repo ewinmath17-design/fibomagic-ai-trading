@@ -129,7 +129,7 @@ with col2:
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
                 
-                model = genai.GenerativeModel('gemini-1.5-pro') # Model vision terbaik untuk analisis chart saat ini
+                model = genai.GenerativeModel('gemini-1.5-flash') # Model vision terbaik untuk analisis chart saat ini
                 
                 # Menghubungkan gambar yang diupload langsung dengan prompt
                 prompt = get_prompt(timeframe)
