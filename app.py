@@ -110,21 +110,44 @@ with col2:
     if analyze_btn and uploaded_file is not None:
         with st.spinner("🤖 Menganalisis Struktur Market & Price Action..."):
             try:
-                # 1. Konfigurasi API Key
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
-                
-                # 2. SOLUSI UTAMA: Konversi gambar ke format RGB (Menghapus Alpha/Transparansi)
                 safe_image = image.convert('RGB')
                 
-                # 3. Panggil model paling stabil dan cepat
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                prompt = get_prompt(timeframe)
+                # ---------------------------------------------------------
+                # DETEKSI MODEL OTOMATIS BERDASARKAN API KEY (ANTI ERROR 404)
+                # ---------------------------------------------------------
+                valid_models = []
+                for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods:
+                        valid_models.append(m.name.replace('models/', ''))
                 
-                # 4. Eksekusi AI
+                if not valid_models:
+                    st.error("API Key Anda tidak memiliki akses ke model AI apapun. Pastikan API Key valid.")
+                    st.stop()
+                
+                # Cari model terbaik yang ada di daftar valid
+                target_model = None
+                for preferred in ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision']:
+                    for vm in valid_models:
+                        if preferred in vm:
+                            target_model = vm
+                            break
+                    if target_model:
+                        break
+                
+                # Jika tidak menemukan yang biasa, pakai model pertama yang tersedia di API Anda
+                if not target_model:
+                    target_model = valid_models[0]
+                
+                st.caption(f"*System Info: Menggunakan mesin AI `{target_model}`*")
+                
+                # Eksekusi dengan model yang pasti valid
+                model = genai.GenerativeModel(target_model)
+                prompt = get_prompt(timeframe)
                 response = model.generate_content([prompt, safe_image])
                 
-                # 5. Parsing & Render Hasil
+                # Parsing & Render Hasil
                 res = parse_result(response.text)
                 
                 sig_upper = res['signal'].upper()
@@ -178,7 +201,6 @@ with col2:
                     st.markdown(f"- {reason}")
                     
             except Exception as e:
-                # Sekarang jika error, aplikasi akan memberi tahu alasan aslinya dengan jujur
-                st.error(f"Error dari sistem: {str(e)}")
+                st.error(f"Sistem Gagal Mengeksekusi: {str(e)}")
     elif not analyze_btn:
         st.info("👈 Silakan pilih timeframe, unggah screenshot chart XAUUSD Anda di panel kiri, lalu klik 'Generate Signal'.")
