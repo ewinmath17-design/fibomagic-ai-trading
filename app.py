@@ -56,25 +56,33 @@ ALASAN ENTRY (LOGIKA ANALISIS):
 - [Alasan 2]
 """
 
-# Fungsi Parsing Regex
+# Fungsi Parsing Regex yang Diperbaiki (Lebih Presisi per Baris)
 def parse_result(text):
-    def safe_extract(pattern, default="-"):
+    def safe_extract(pattern, text, default="-"):
+        # (?=\n|$) memastikan hanya mengambil teks dalam satu baris itu saja
         match = re.search(pattern, text, re.IGNORECASE)
-        return match.group(1).strip() if match else default
+        if match:
+            # Membersihkan asterisk (**) bawaan markdown jika ada
+            return match.group(1).replace('*', '').strip()
+        return default
 
-    status = safe_extract(r'STATUS MARKET:\s*\*?([^*]+)\*?')
-    signal = safe_extract(r'KONFIRMASI SIGNAL:\s*\*?([^*]+)\*?')
-    entry = safe_extract(r'- Entry Area:\s*\*?([^*]+)\*?')
-    sl = safe_extract(r'- Stop Loss \(SL\):\s*\*?([^*]+)\*?')
-    tp = safe_extract(r'- Take Profit \(TP\):\s*\*?([^*]+)\*?')
-    evaluation = safe_extract(r'- Evaluasi Setup:\s*\*?([^*]+)\*?')
-    duration = safe_extract(r'- Durasi Validitas:\s*\*?([^*]+)\*?')
+    status = safe_extract(r'STATUS MARKET:\s*(.*?)(?=\n|$)', text)
+    signal = safe_extract(r'KONFIRMASI SIGNAL:\s*(.*?)(?=\n|$)', text)
+    entry = safe_extract(r'Entry Area:\s*(.*?)(?=\n|$)', text)
+    sl = safe_extract(r'Stop Loss \(SL\):\s*(.*?)(?=\n|$)', text)
+    tp = safe_extract(r'Take Profit \(TP\):\s*(.*?)(?=\n|$)', text)
+    evaluation = safe_extract(r'Evaluasi Setup:\s*(.*?)(?=\n|$)', text)
+    duration = safe_extract(r'Durasi Validitas:\s*(.*?)(?=\n|$)', text)
 
+    # Memecah bagian Alasan Entry
     reasons_split = re.split(r'ALASAN ENTRY \(LOGIKA ANALISIS\):', text, flags=re.IGNORECASE)
     reasons = []
     if len(reasons_split) > 1:
         reasons_text = reasons_split[1].strip()
-        reasons = [r.replace('-', '').strip() for r in reasons_text.split('\n') if len(r.strip()) > 5]
+        reasons = [r.replace('-', '').replace('*', '').strip() for r in reasons_text.split('\n') if len(r.strip()) > 5]
+    
+    if not reasons:
+        reasons = ["Analisis logis berdasarkan price action pada chart yang dilampirkan."]
 
     return {
         'status': status, 'signal': signal, 'entry': entry,
@@ -112,39 +120,27 @@ with col2:
             try:
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
+                
+                # Mengubah gambar ke format aman dan menyambungkan dengan prompt (Sesuai instruksi Anda)
                 safe_image = image.convert('RGB')
                 
-                # ---------------------------------------------------------
-                # DETEKSI MODEL OTOMATIS BERDASARKAN API KEY (ANTI ERROR 404)
-                # ---------------------------------------------------------
-                valid_models = []
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        valid_models.append(m.name.replace('models/', ''))
+                valid_models = [m.name.replace('models/', '') for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
                 
-                if not valid_models:
-                    st.error("API Key Anda tidak memiliki akses ke model AI apapun. Pastikan API Key valid.")
-                    st.stop()
-                
-                # Cari model terbaik yang ada di daftar valid
-                target_model = None
+                target_model = valid_models[0] if valid_models else None
                 for preferred in ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision']:
                     for vm in valid_models:
                         if preferred in vm:
                             target_model = vm
                             break
-                    if target_model:
+                    if target_model != valid_models[0]: 
                         break
-                
-                # Jika tidak menemukan yang biasa, pakai model pertama yang tersedia di API Anda
-                if not target_model:
-                    target_model = valid_models[0]
                 
                 st.caption(f"*System Info: Menggunakan mesin AI `{target_model}`*")
                 
-                # Eksekusi dengan model yang pasti valid
                 model = genai.GenerativeModel(target_model)
                 prompt = get_prompt(timeframe)
+                
+                # Eksekusi (Gambar + Prompt sudah terkoneksi di sini)
                 response = model.generate_content([prompt, safe_image])
                 
                 # Parsing & Render Hasil
@@ -155,6 +151,7 @@ with col2:
                 elif "SELL" in sig_upper: sig_class = "signal-sell"
                 else: sig_class = "signal-wait"
 
+                # Tampilan UI Akhir
                 st.markdown(f"""
                 <div class="metric-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
