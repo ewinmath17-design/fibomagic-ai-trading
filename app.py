@@ -25,22 +25,24 @@ st.markdown("""
     .signal-buy { color: #34d399; font-weight: bold; background: rgba(52, 211, 153, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(52, 211, 153, 0.2); }
     .signal-sell { color: #fb7185; font-weight: bold; background: rgba(251, 113, 133, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.2); }
     .signal-wait { color: #fbbf24; font-weight: bold; background: rgba(251, 191, 36, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(251, 191, 36, 0.2); }
-    /* Styling tabel history agar gelap dan menyatu dengan tema */
     [data-testid="stDataFrame"] { background-color: #0f172a; border-radius: 8px; }
     </style>
 """, unsafe_allow_html=True)
 
-# Fungsi Prompt (Versi Sniper / SMC)
+# Fungsi Prompt (Versi Sniper Elite FX - Extreme Risk:Reward)
 def get_prompt(timeframe):
-    return f"""Anda adalah seorang Prop-Firm Trading Analyst profesional dengan spesialisasi pada teknik Smart Money Concepts (SMC) dan Sniper Entry untuk instrumen XAUUSD (Gold) pada Timeframe {timeframe}. 
+    return f"""Anda adalah seorang Prop-Firm Trading Analyst profesional dengan spesialisasi pada teknik Smart Money Concepts (SMC) dan "Sniper Entry System" untuk instrumen XAUUSD (Gold) pada Timeframe {timeframe}. 
 
-Tugas utama Anda adalah menganalisis gambar screenshot chart trading yang diberikan dan memberikan konfirmasi eksekusi (Signal) dengan akurasi tinggi, risiko rendah (less risk), dan rasio Risk:Reward (max result) yang besar.
+Tugas utama Anda adalah menganalisis gambar screenshot chart trading yang diberikan dan memberikan konfirmasi eksekusi (Signal) dengan tingkat presisi di atas 80% (High Win Rate) dan rasio Risk:Reward yang sangat ekstrem.
 
-LAKUKAN ANALISIS BERDASARKAN 3 PARAMETER SNIPER (SMC) BERIKUT:
-1. Liquidity Sweep: Apakah terlihat adanya manipulasi harga yang menyapu area likuiditas (Stop Loss hunter) di level Support/Resistance penting sebelum harga berbalik?
-2. Change of Character (CHoCH): Apakah ada tanda awal perubahan tren atau pergeseran momentum dari Bearish ke Bullish (atau sebaliknya)?
-3. Break of Structure (BOS): Identifikasi apakah struktur harga telah berhasil menembus dan tutup di luar level kunci, mengonfirmasi kelanjutan tren.
-4. Price Action: Deteksi momentum penolakan (rejection) di area Order Block atau area Supply & Demand yang valid.
+LAKUKAN ANALISIS BERDASARKAN 3 PARAMETER MUTLAK SNIPER (SMC):
+1. Liquidity Sweep: Apakah terlihat adanya manipulasi harga yang menyapu area likuiditas (Stop Loss hunter) di level ekstrem sebelum harga berbalik?
+2. Change of Character (CHoCH): Apakah ada tanda awal perubahan struktur yang sangat jelas dari Bearish ke Bullish (atau sebaliknya)?
+3. Break of Structure (BOS): Apakah struktur harga telah berhasil menembus level kunci untuk mengonfirmasi tren baru?
+
+PRINSIP SNIPER ENTRY:
+- "Less frequency + More Precision + More Rewards". Jika 3 konfirmasi di atas TIDAK terlihat jelas, Anda WAJIB memberikan sinyal WAIT. Jangan memaksakan entry.
+- Risk/Reward sangat ekstrem (target 1:10, 1:15, hingga 1:30). Ini membutuhkan "SNIPER ZONE" (Area Entry) yang sangat sempit dan Stop Loss yang sangat ketat.
 
 ATURAN OUTPUT:
 Berikan hasil analisis Anda HANYA dalam format terstruktur di bawah ini. Jangan tambahkan narasi pembuka atau penutup.
@@ -48,21 +50,21 @@ Berikan hasil analisis Anda HANYA dalam format terstruktur di bawah ini. Jangan 
 [ HASIL ANALISIS FIBOMAGIC AI ]
 TIMEFRAME: {timeframe}
 STATUS MARKET: [Uptrend / Downtrend / Sideways / Liquidity Sweep Detected]
-KONFIRMASI SIGNAL: [STRONG BUY / STRONG SELL / WAIT FOR CHOCH]
+KONFIRMASI SIGNAL: [STRONG BUY / STRONG SELL / WAIT FOR SETUP]
 
 DETAIL EKSEKUSI:
-- Entry Area: [Sebutkan rentang harga spesifik di area Order Block/Supply/Demand]
-- Stop Loss (SL): [Sebutkan titik harga SL yang ketat di bawah/atas area Swing terakhir]
-- Take Profit (TP): [Sebutkan titik harga TP dengan rasio Risk:Reward minimal 1:3]
+- Entry Area: [Sebutkan rentang harga "SNIPER ZONE" yang sangat sempit di ekstrem Order Block]
+- Stop Loss (SL): [Sebutkan titik harga SL yang SANGAT KETAT, tepat di luar Sniper Zone]
+- Take Profit (TP): [Sebutkan titik harga "TP ZONE" yang jauh untuk rasio R:R ekstrem]
 
 EVALUASI & DURASI:
-- Evaluasi Setup: [Sebutkan kualitas setup, misal: High Probability Prop-Firm Setup, Low Frequency High Reward]
+- Evaluasi Setup: [Sebutkan kualitas setup, misal: Valid Sniper Setup, Win Rate 80% Potential, atau Invalid Setup]
 - Durasi Validitas: [Sebutkan estimasi waktu valid]
 
 ALASAN ENTRY (LOGIKA ANALISIS):
-- [Sebutkan ada/tidaknya Liquidity Sweep]
-- [Sebutkan konfirmasi CHoCH atau BOS yang terjadi]
-- [Sebutkan alasan penempatan rasio Risk to Reward]
+- [Analisis Liquidity Sweep & penentuan area Sniper Zone]
+- [Analisis konfirmasi CHoCH / BOS]
+- [Alasan penentuan SL ketat dan TP Zone ekstrem]
 """
 
 # Fungsi Parsing Regex
@@ -88,7 +90,7 @@ def parse_result(text):
         reasons = [r.replace('-', '').replace('*', '').strip() for r in reasons_text.split('\n') if len(r.strip()) > 5]
     
     if not reasons:
-        reasons = ["Analisis logis berdasarkan price action pada chart yang dilampirkan."]
+        reasons = ["Menunggu konfirmasi validasi Sniper Entry System."]
 
     return {
         'status': status, 'signal': signal, 'entry': entry,
@@ -114,15 +116,15 @@ with col1:
         image = Image.open(uploaded_file)
         st.image(image, caption="Chart Ready for Analysis", use_container_width=True)
     
-    analyze_btn = st.button("📈 Generate Signal", type="primary", use_container_width=True, disabled=not uploaded_file)
+    analyze_btn = st.button("📈 Generate Sniper Signal", type="primary", use_container_width=True, disabled=not uploaded_file)
 
     st.markdown("---")
     st.markdown("**System Parameters**")
-    st.caption(f"**Instrument:** XAUUSD (Gold)\n\n**Timeframe:** {timeframe}\n\n**Strategy:** Smart Money Concepts (SMC) & Liquidity Sweep")
+    st.caption(f"**Instrument:** XAUUSD (Gold)\n\n**Timeframe:** {timeframe}\n\n**Algorithm:** Prop-Firm SMC & Extreme Risk-Reward")
 
 with col2:
     if analyze_btn and uploaded_file is not None:
-        with st.spinner("🤖 Mendeteksi Liquidity Sweep & Order Block..."):
+        with st.spinner("🤖 Mendeteksi Sniper Zone & TP Zone Ekstrem..."):
             try:
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
@@ -159,12 +161,11 @@ with col2:
                     "Waktu": datetime.now().strftime("%H:%M:%S"),
                     "TF": timeframe,
                     "Sinyal": res['signal'],
-                    "Entry": res['entry'],
-                    "SL": res['sl'],
-                    "TP": res['tp'],
+                    "Entry (Sniper Zone)": res['entry'],
+                    "SL (Ketar)": res['sl'],
+                    "TP (Extreme)": res['tp'],
                     "Status": res['status']
                 }
-                # Memasukkan data terbaru di posisi paling atas (index 0)
                 st.session_state.trading_history.insert(0, history_entry)
 
                 # Tampilan UI Akhir
@@ -180,10 +181,10 @@ with col2:
                             <span class="{sig_class}">{res['signal']}</span>
                         </div>
                     </div>
-                    <p style="color: #94a3b8; font-size: 14px; font-weight: bold; margin-bottom: 8px;">🎯 EXECUTION DETAILS</p>
+                    <p style="color: #94a3b8; font-size: 14px; font-weight: bold; margin-bottom: 8px;">🎯 SNIPER EXECUTION DETAILS</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px;">
                         <div style="background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
-                            <p style="font-size: 11px; color: #64748b; margin: 0;">Entry Area</p>
+                            <p style="font-size: 11px; color: #64748b; margin: 0;">Sniper Zone (Entry)</p>
                             <p style="font-size: 14px; color: #e2e8f0; font-family: monospace; margin: 0;">{res['entry']}</p>
                         </div>
                         <div style="background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
@@ -191,7 +192,7 @@ with col2:
                             <p style="font-size: 14px; color: #fb7185; font-family: monospace; margin: 0;">{res['sl']}</p>
                         </div>
                         <div style="background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
-                            <p style="font-size: 11px; color: #64748b; margin: 0;">Take Profit (TP)</p>
+                            <p style="font-size: 11px; color: #64748b; margin: 0;">TP Zone</p>
                             <p style="font-size: 14px; color: #34d399; font-family: monospace; margin: 0;">{res['tp']}</p>
                         </div>
                     </div>
@@ -216,7 +217,7 @@ with col2:
             except Exception as e:
                 st.error(f"Sistem Gagal Mengeksekusi: {str(e)}")
     elif not analyze_btn:
-        st.info("👈 Silakan pilih timeframe, unggah screenshot chart XAUUSD Anda di panel kiri, lalu klik 'Generate Signal'.")
+        st.info("👈 Silakan pilih timeframe, unggah screenshot chart XAUUSD Anda di panel kiri, lalu klik 'Generate Sniper Signal'.")
 
 # ---------------------------------------------------------
 # RENDER HISTORY TRADING (DI BAWAH KEDUA KOLOM)
@@ -226,10 +227,7 @@ if st.session_state.trading_history:
     st.markdown("### 📚 Trading Journal History")
     st.caption("Riwayat analisis Anda selama sesi ini berjalan. Data akan hilang jika halaman di-refresh.")
     
-    # Menggunakan Pandas DataFrame agar tampilan tabel rapi
     df_history = pd.DataFrame(st.session_state.trading_history)
-    
-    # Menampilkan tabel interaktif
     st.dataframe(
         df_history, 
         use_container_width=True, 
