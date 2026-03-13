@@ -2,14 +2,20 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 import re
+import pandas as pd
+from datetime import datetime
 
 # Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title="FIBOMAGIC AI | XAUUSD Analysis",
+    page_title="FIBOMAGIC AI | Sniper Entry",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Inisialisasi Session State untuk History Trading
+if 'trading_history' not in st.session_state:
+    st.session_state.trading_history = []
 
 # Custom CSS
 st.markdown("""
@@ -19,50 +25,51 @@ st.markdown("""
     .signal-buy { color: #34d399; font-weight: bold; background: rgba(52, 211, 153, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(52, 211, 153, 0.2); }
     .signal-sell { color: #fb7185; font-weight: bold; background: rgba(251, 113, 133, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.2); }
     .signal-wait { color: #fbbf24; font-weight: bold; background: rgba(251, 191, 36, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(251, 191, 36, 0.2); }
+    /* Styling tabel history agar gelap dan menyatu dengan tema */
+    [data-testid="stDataFrame"] { background-color: #0f172a; border-radius: 8px; }
     </style>
 """, unsafe_allow_html=True)
 
-# Fungsi Prompt
+# Fungsi Prompt (Versi Sniper / SMC)
 def get_prompt(timeframe):
-    return f"""Anda adalah seorang AI Trading Analyst profesional dengan spesialisasi pada teknik trading, khususnya untuk instrumen XAUUSD (Gold) pada Timeframe {timeframe}. 
+    return f"""Anda adalah seorang Prop-Firm Trading Analyst profesional dengan spesialisasi pada teknik Smart Money Concepts (SMC) dan Sniper Entry untuk instrumen XAUUSD (Gold) pada Timeframe {timeframe}. 
 
-Tugas utama Anda adalah menganalisis gambar screenshot chart trading yang diberikan dan memberikan konfirmasi eksekusi (Signal) yang sangat logis, objektif, dan berbasis probabilitas tinggi.
+Tugas utama Anda adalah menganalisis gambar screenshot chart trading yang diberikan dan memberikan konfirmasi eksekusi (Signal) dengan akurasi tinggi, risiko rendah (less risk), dan rasio Risk:Reward (max result) yang besar.
 
-LAKUKAN ANALISIS BERDASARKAN POIN BERIKUT:
-1. Identifikasi Tren ({timeframe}): Apakah harga sedang membuat Higher High/Higher Low (Uptrend), Lower High/Lower Low (Downtrend), atau Ranging/Sideways?
-2. Key Levels: Tentukan titik Support dan Resistance terdekat (dinamis maupun statis) yang relevan dengan harga saat ini.
-3. Price Action & Candlestick: Deteksi pola candlestick terakhir dan momentum penolakan di area penting.
-4. Indikator Tambahan: Baca sinyal dari indikator yang terpasang di chart.
+LAKUKAN ANALISIS BERDASARKAN 3 PARAMETER SNIPER (SMC) BERIKUT:
+1. Liquidity Sweep: Apakah terlihat adanya manipulasi harga yang menyapu area likuiditas (Stop Loss hunter) di level Support/Resistance penting sebelum harga berbalik?
+2. Change of Character (CHoCH): Apakah ada tanda awal perubahan tren atau pergeseran momentum dari Bearish ke Bullish (atau sebaliknya)?
+3. Break of Structure (BOS): Identifikasi apakah struktur harga telah berhasil menembus dan tutup di luar level kunci, mengonfirmasi kelanjutan tren.
+4. Price Action: Deteksi momentum penolakan (rejection) di area Order Block atau area Supply & Demand yang valid.
 
 ATURAN OUTPUT:
 Berikan hasil analisis Anda HANYA dalam format terstruktur di bawah ini. Jangan tambahkan narasi pembuka atau penutup.
 
 [ HASIL ANALISIS FIBOMAGIC AI ]
 TIMEFRAME: {timeframe}
-STATUS MARKET: [Uptrend / Downtrend / Sideways]
-KONFIRMASI SIGNAL: [STRONG BUY / STRONG SELL / WAIT]
+STATUS MARKET: [Uptrend / Downtrend / Sideways / Liquidity Sweep Detected]
+KONFIRMASI SIGNAL: [STRONG BUY / STRONG SELL / WAIT FOR CHOCH]
 
 DETAIL EKSEKUSI:
-- Entry Area: [Sebutkan rentang harga]
-- Stop Loss (SL): [Sebutkan titik harga SL]
-- Take Profit (TP): [Sebutkan titik harga TP]
+- Entry Area: [Sebutkan rentang harga spesifik di area Order Block/Supply/Demand]
+- Stop Loss (SL): [Sebutkan titik harga SL yang ketat di bawah/atas area Swing terakhir]
+- Take Profit (TP): [Sebutkan titik harga TP dengan rasio Risk:Reward minimal 1:3]
 
 EVALUASI & DURASI:
-- Evaluasi Setup: [Sebutkan evaluasi singkat]
+- Evaluasi Setup: [Sebutkan kualitas setup, misal: High Probability Prop-Firm Setup, Low Frequency High Reward]
 - Durasi Validitas: [Sebutkan estimasi waktu valid]
 
 ALASAN ENTRY (LOGIKA ANALISIS):
-- [Alasan 1]
-- [Alasan 2]
+- [Sebutkan ada/tidaknya Liquidity Sweep]
+- [Sebutkan konfirmasi CHoCH atau BOS yang terjadi]
+- [Sebutkan alasan penempatan rasio Risk to Reward]
 """
 
-# Fungsi Parsing Regex yang Diperbaiki (Lebih Presisi per Baris)
+# Fungsi Parsing Regex
 def parse_result(text):
     def safe_extract(pattern, text, default="-"):
-        # (?=\n|$) memastikan hanya mengambil teks dalam satu baris itu saja
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            # Membersihkan asterisk (**) bawaan markdown jika ada
             return match.group(1).replace('*', '').strip()
         return default
 
@@ -74,7 +81,6 @@ def parse_result(text):
     evaluation = safe_extract(r'Evaluasi Setup:\s*(.*?)(?=\n|$)', text)
     duration = safe_extract(r'Durasi Validitas:\s*(.*?)(?=\n|$)', text)
 
-    # Memecah bagian Alasan Entry
     reasons_split = re.split(r'ALASAN ENTRY \(LOGIKA ANALISIS\):', text, flags=re.IGNORECASE)
     reasons = []
     if len(reasons_split) > 1:
@@ -91,7 +97,7 @@ def parse_result(text):
     }
 
 # Header App
-st.markdown("### ⚡ FIBOMAGIC **AI** | `XAUUSD ANALYSIS`")
+st.markdown("### ⚡ FIBOMAGIC **AI** | `SNIPER ENTRY SYSTEM`")
 st.markdown("---")
 
 # Layout Grid
@@ -112,18 +118,16 @@ with col1:
 
     st.markdown("---")
     st.markdown("**System Parameters**")
-    st.caption(f"**Instrument:** XAUUSD (Gold)\n\n**Timeframe:** {timeframe}\n\n**Strategy:** {'Aggressive Scalping' if timeframe in ['M1', 'M5'] else 'Day Trading'}")
+    st.caption(f"**Instrument:** XAUUSD (Gold)\n\n**Timeframe:** {timeframe}\n\n**Strategy:** Smart Money Concepts (SMC) & Liquidity Sweep")
 
 with col2:
     if analyze_btn and uploaded_file is not None:
-        with st.spinner("🤖 Menganalisis Struktur Market & Price Action..."):
+        with st.spinner("🤖 Mendeteksi Liquidity Sweep & Order Block..."):
             try:
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
                 
-                # Mengubah gambar ke format aman dan menyambungkan dengan prompt (Sesuai instruksi Anda)
                 safe_image = image.convert('RGB')
-                
                 valid_models = [m.name.replace('models/', '') for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
                 
                 target_model = valid_models[0] if valid_models else None
@@ -140,16 +144,28 @@ with col2:
                 model = genai.GenerativeModel(target_model)
                 prompt = get_prompt(timeframe)
                 
-                # Eksekusi (Gambar + Prompt sudah terkoneksi di sini)
                 response = model.generate_content([prompt, safe_image])
-                
-                # Parsing & Render Hasil
                 res = parse_result(response.text)
                 
                 sig_upper = res['signal'].upper()
                 if "BUY" in sig_upper: sig_class = "signal-buy"
                 elif "SELL" in sig_upper: sig_class = "signal-sell"
                 else: sig_class = "signal-wait"
+
+                # ---------------------------------------------------------
+                # SIMPAN KE HISTORY
+                # ---------------------------------------------------------
+                history_entry = {
+                    "Waktu": datetime.now().strftime("%H:%M:%S"),
+                    "TF": timeframe,
+                    "Sinyal": res['signal'],
+                    "Entry": res['entry'],
+                    "SL": res['sl'],
+                    "TP": res['tp'],
+                    "Status": res['status']
+                }
+                # Memasukkan data terbaru di posisi paling atas (index 0)
+                st.session_state.trading_history.insert(0, history_entry)
 
                 # Tampilan UI Akhir
                 st.markdown(f"""
@@ -193,7 +209,7 @@ with col2:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                st.markdown("**🧠 Analysis Logic (Alasan Entry):**")
+                st.markdown("**🧠 Logika Sniper (SMC Analysis):**")
                 for reason in res['reasons']:
                     st.markdown(f"- {reason}")
                     
@@ -201,3 +217,21 @@ with col2:
                 st.error(f"Sistem Gagal Mengeksekusi: {str(e)}")
     elif not analyze_btn:
         st.info("👈 Silakan pilih timeframe, unggah screenshot chart XAUUSD Anda di panel kiri, lalu klik 'Generate Signal'.")
+
+# ---------------------------------------------------------
+# RENDER HISTORY TRADING (DI BAWAH KEDUA KOLOM)
+# ---------------------------------------------------------
+if st.session_state.trading_history:
+    st.markdown("---")
+    st.markdown("### 📚 Trading Journal History")
+    st.caption("Riwayat analisis Anda selama sesi ini berjalan. Data akan hilang jika halaman di-refresh.")
+    
+    # Menggunakan Pandas DataFrame agar tampilan tabel rapi
+    df_history = pd.DataFrame(st.session_state.trading_history)
+    
+    # Menampilkan tabel interaktif
+    st.dataframe(
+        df_history, 
+        use_container_width=True, 
+        hide_index=True
+    )
