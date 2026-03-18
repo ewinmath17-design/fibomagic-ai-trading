@@ -7,7 +7,7 @@ from datetime import datetime
 
 # Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title="FIBOMAGIC AI | Sniper Entry",
+    page_title="FIBOMAGIC AI | Ultimate SMC",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -29,45 +29,45 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Fungsi Prompt (Versi Sniper Elite FX - Extreme Risk:Reward)
+# Fungsi Prompt (Versi Ultimate SMC + FVG + Smart TP 3 Tingkat)
 def get_prompt(timeframe):
-    return f"""Anda adalah seorang Prop-Firm Trading Analyst profesional dengan spesialisasi pada teknik Smart Money Concepts (SMC) dan "Sniper Entry System" untuk instrumen XAUUSD (Gold) pada Timeframe {timeframe}. 
+    return f"""Anda adalah seorang Prop-Firm Trading Analyst profesional dengan spesialisasi pada teknik Advanced Smart Money Concepts (SMC) untuk instrumen XAUUSD (Gold) pada Timeframe {timeframe}. 
 
-Tugas utama Anda adalah menganalisis gambar screenshot chart trading yang diberikan dan memberikan konfirmasi eksekusi (Signal) dengan tingkat presisi di atas 80% (High Win Rate) dan rasio Risk:Reward yang sangat ekstrem.
+Tugas utama Anda adalah menganalisis gambar screenshot chart trading yang diberikan dan memberikan konfirmasi eksekusi (Signal) dengan tingkat presisi tinggi layaknya indikator algoritma premium.
 
-LAKUKAN ANALISIS BERDASARKAN 3 PARAMETER MUTLAK SNIPER (SMC):
-1. Liquidity Sweep: Apakah terlihat adanya manipulasi harga yang menyapu area likuiditas (Stop Loss hunter) di level ekstrem sebelum harga berbalik?
-2. Change of Character (CHoCH): Apakah ada tanda awal perubahan struktur yang sangat jelas dari Bearish ke Bullish (atau sebaliknya)?
-3. Break of Structure (BOS): Apakah struktur harga telah berhasil menembus level kunci untuk mengonfirmasi tren baru?
-
-PRINSIP SNIPER ENTRY:
-- "Less frequency + More Precision + More Rewards". Jika 3 konfirmasi di atas TIDAK terlihat jelas, Anda WAJIB memberikan sinyal WAIT. Jangan memaksakan entry.
-- Risk/Reward sangat ekstrem (target 1:10, 1:15, hingga 1:30). Ini membutuhkan "SNIPER ZONE" (Area Entry) yang sangat sempit dan Stop Loss yang sangat ketat.
+LAKUKAN ANALISIS BERDASARKAN 5 PARAMETER MUTLAK SMC BERIKUT:
+1. Fair Value Gap (FVG) / Imbalance: Deteksi apakah ada area FVG yang belum terisi yang berpotensi menjadi magnet harga sebelum melanjutkan tren.
+2. Liquidity Sweep & EQH/EQL ($$$): Identifikasi apakah ada Equal Highs/Lows yang bertindak sebagai kolam likuiditas, atau apakah Wick Sweep sudah terjadi di area tersebut.
+3. Multi-Timeframe Levels: Perhatikan apakah harga sedang berinteraksi dengan level kunci seperti Previous Day High/Low (PDH/PDL) atau Previous Week High/Low (PWH/PWL).
+4. Change of Character (CHoCH) & Break of Structure (BOS): Konfirmasi perubahan struktur tren yang valid.
+5. Order Block (OB): Tentukan area Supply & Demand yang menjadi "Sniper Zone" untuk titik entry.
 
 ATURAN OUTPUT:
 Berikan hasil analisis Anda HANYA dalam format terstruktur di bawah ini. Jangan tambahkan narasi pembuka atau penutup.
 
 [ HASIL ANALISIS FIBOMAGIC AI ]
 TIMEFRAME: {timeframe}
-STATUS MARKET: [Uptrend / Downtrend / Sideways / Liquidity Sweep Detected]
-KONFIRMASI SIGNAL: [STRONG BUY / STRONG SELL / WAIT FOR SETUP]
+STATUS MARKET: [Uptrend / Downtrend / Sideways / FVG Fill / Liquidity Sweep]
+KONFIRMASI SIGNAL: [STRONG BUY / STRONG SELL / WAIT FOR CONFLUENCE]
 
-DETAIL EKSEKUSI:
-- Entry Area: [Sebutkan rentang harga "SNIPER ZONE" yang sangat sempit di ekstrem Order Block]
-- Stop Loss (SL): [Sebutkan titik harga SL yang SANGAT KETAT, tepat di luar Sniper Zone]
-- Take Profit (TP): [Sebutkan titik harga "TP ZONE" yang jauh untuk rasio R:R ekstrem]
+DETAIL EKSEKUSI (SMART LOGIC):
+- Entry Area: [Sebutkan rentang harga "Sniper Zone" di area OB atau FVG]
+- Stop Loss (SL): [Sebutkan titik harga SL ketat di luar struktur]
+- Take Profit 1 (TP1): [Sebutkan TP1 terdekat untuk amankan modal (+50 pips)]
+- Take Profit 2 (TP2): [Sebutkan TP2 menengah (+100 pips)]
+- Take Profit 3 (TP3): [Sebutkan TP3 maksimal untuk rasio ekstrem (+150 pips atau lebih)]
 
 EVALUASI & DURASI:
-- Evaluasi Setup: [Sebutkan kualitas setup, misal: Valid Sniper Setup, Win Rate 80% Potential, atau Invalid Setup]
+- Evaluasi Setup: [Sebutkan kualitas setup. Tambahkan instruksi: "Geser SL ke Break Even jika TP1 hit"]
 - Durasi Validitas: [Sebutkan estimasi waktu valid]
 
 ALASAN ENTRY (LOGIKA ANALISIS):
-- [Analisis Liquidity Sweep & penentuan area Sniper Zone]
-- [Analisis konfirmasi CHoCH / BOS]
-- [Alasan penentuan SL ketat dan TP Zone ekstrem]
+- [Analisis FVG, EQH/EQL, atau PDH/PDL yang terlihat]
+- [Analisis konfirmasi CHoCH / BOS dan reaksi di Order Block]
+- [Alasan penentuan SL dan strategi partial Take Profit]
 """
 
-# Fungsi Parsing Regex
+# Fungsi Parsing Regex (Diperbarui untuk 3 Tingkat TP)
 def parse_result(text):
     def safe_extract(pattern, text, default="-"):
         match = re.search(pattern, text, re.IGNORECASE)
@@ -79,7 +79,18 @@ def parse_result(text):
     signal = safe_extract(r'KONFIRMASI SIGNAL:\s*(.*?)(?=\n|$)', text)
     entry = safe_extract(r'Entry Area:\s*(.*?)(?=\n|$)', text)
     sl = safe_extract(r'Stop Loss \(SL\):\s*(.*?)(?=\n|$)', text)
-    tp = safe_extract(r'Take Profit \(TP\):\s*(.*?)(?=\n|$)', text)
+    
+    # Ekstraksi TP Bertingkat
+    tp1 = safe_extract(r'Take Profit 1 \(TP1\):\s*(.*?)(?=\n|$)', text)
+    tp2 = safe_extract(r'Take Profit 2 \(TP2\):\s*(.*?)(?=\n|$)', text)
+    tp3 = safe_extract(r'Take Profit 3 \(TP3\):\s*(.*?)(?=\n|$)', text)
+    
+    # Penggabungan TP untuk ditampilkan di UI
+    if tp2 != "-" and tp3 != "-":
+        tp_combined = f"TP1: {tp1} | TP2: {tp2} | TP3: {tp3}"
+    else:
+        tp_combined = tp1
+
     evaluation = safe_extract(r'Evaluasi Setup:\s*(.*?)(?=\n|$)', text)
     duration = safe_extract(r'Durasi Validitas:\s*(.*?)(?=\n|$)', text)
 
@@ -90,16 +101,16 @@ def parse_result(text):
         reasons = [r.replace('-', '').replace('*', '').strip() for r in reasons_text.split('\n') if len(r.strip()) > 5]
     
     if not reasons:
-        reasons = ["Menunggu konfirmasi validasi Sniper Entry System."]
+        reasons = ["Menunggu konfirmasi validasi Advanced SMC."]
 
     return {
         'status': status, 'signal': signal, 'entry': entry,
-        'sl': sl, 'tp': tp, 'evaluation': evaluation,
+        'sl': sl, 'tp': tp_combined, 'evaluation': evaluation,
         'duration': duration, 'reasons': reasons, 'raw': text
     }
 
 # Header App
-st.markdown("### ⚡ FIBOMAGIC **AI** | `SNIPER ENTRY SYSTEM`")
+st.markdown("### ⚡ FIBOMAGIC **AI** | `ULTIMATE SMC SYSTEM`")
 st.markdown("---")
 
 # Layout Grid
@@ -116,15 +127,15 @@ with col1:
         image = Image.open(uploaded_file)
         st.image(image, caption="Chart Ready for Analysis", use_container_width=True)
     
-    analyze_btn = st.button("📈 Generate Sniper Signal", type="primary", use_container_width=True, disabled=not uploaded_file)
+    analyze_btn = st.button("📈 Generate Smart Signal", type="primary", use_container_width=True, disabled=not uploaded_file)
 
     st.markdown("---")
     st.markdown("**System Parameters**")
-    st.caption(f"**Instrument:** XAUUSD (Gold)\n\n**Timeframe:** {timeframe}\n\n**Algorithm:** Prop-Firm SMC & Extreme Risk-Reward")
+    st.caption(f"**Instrument:** XAUUSD (Gold)\n\n**Timeframe:** {timeframe}\n\n**Algorithm:** Advanced SMC, FVG & Multi-TP Logic")
 
 with col2:
     if analyze_btn and uploaded_file is not None:
-        with st.spinner("🤖 Mendeteksi Sniper Zone & TP Zone Ekstrem..."):
+        with st.spinner("🤖 Menganalisis FVG, Liquidity & Order Block..."):
             try:
                 api_key = st.secrets["GEMINI_API_KEY"]
                 genai.configure(api_key=api_key)
@@ -146,6 +157,7 @@ with col2:
                 model = genai.GenerativeModel(target_model)
                 prompt = get_prompt(timeframe)
                 
+                # Eksekusi AI
                 response = model.generate_content([prompt, safe_image])
                 res = parse_result(response.text)
                 
@@ -155,15 +167,15 @@ with col2:
                 else: sig_class = "signal-wait"
 
                 # ---------------------------------------------------------
-                # SIMPAN KE HISTORY
+                # SIMPAN KE HISTORY TRADING
                 # ---------------------------------------------------------
                 history_entry = {
                     "Waktu": datetime.now().strftime("%H:%M:%S"),
                     "TF": timeframe,
                     "Sinyal": res['signal'],
-                    "Entry (Sniper Zone)": res['entry'],
-                    "SL (Ketar)": res['sl'],
-                    "TP (Extreme)": res['tp'],
+                    "Sniper Zone": res['entry'],
+                    "SL": res['sl'],
+                    "Target TP": res['tp'],
                     "Status": res['status']
                 }
                 st.session_state.trading_history.insert(0, history_entry)
@@ -181,19 +193,21 @@ with col2:
                             <span class="{sig_class}">{res['signal']}</span>
                         </div>
                     </div>
-                    <p style="color: #94a3b8; font-size: 14px; font-weight: bold; margin-bottom: 8px;">🎯 SNIPER EXECUTION DETAILS</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                    <p style="color: #94a3b8; font-size: 14px; font-weight: bold; margin-bottom: 8px;">🎯 SMART EXECUTION DETAILS</p>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px;">
                         <div style="background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
                             <p style="font-size: 11px; color: #64748b; margin: 0;">Sniper Zone (Entry)</p>
                             <p style="font-size: 14px; color: #e2e8f0; font-family: monospace; margin: 0;">{res['entry']}</p>
                         </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
                         <div style="background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
                             <p style="font-size: 11px; color: #64748b; margin: 0;">Stop Loss (SL)</p>
                             <p style="font-size: 14px; color: #fb7185; font-family: monospace; margin: 0;">{res['sl']}</p>
                         </div>
                         <div style="background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
-                            <p style="font-size: 11px; color: #64748b; margin: 0;">TP Zone</p>
-                            <p style="font-size: 14px; color: #34d399; font-family: monospace; margin: 0;">{res['tp']}</p>
+                            <p style="font-size: 11px; color: #64748b; margin: 0;">Multi-Target (TP1, TP2, TP3)</p>
+                            <p style="font-size: 12px; color: #34d399; font-family: monospace; margin: 0;">{res['tp']}</p>
                         </div>
                     </div>
                     <p style="color: #94a3b8; font-size: 14px; font-weight: bold; margin-bottom: 8px;">⏱️ EVALUATION & VALIDITY</p>
@@ -210,14 +224,14 @@ with col2:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                st.markdown("**🧠 Logika Sniper (SMC Analysis):**")
+                st.markdown("**🧠 Logika Smart Money (SMC Analysis):**")
                 for reason in res['reasons']:
                     st.markdown(f"- {reason}")
                     
             except Exception as e:
                 st.error(f"Sistem Gagal Mengeksekusi: {str(e)}")
     elif not analyze_btn:
-        st.info("👈 Silakan pilih timeframe, unggah screenshot chart XAUUSD Anda di panel kiri, lalu klik 'Generate Sniper Signal'.")
+        st.info("👈 Silakan pilih timeframe, unggah screenshot chart XAUUSD Anda di panel kiri, lalu klik 'Generate Smart Signal'.")
 
 # ---------------------------------------------------------
 # RENDER HISTORY TRADING (DI BAWAH KEDUA KOLOM)
